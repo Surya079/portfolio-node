@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
 import nodemailer from "nodemailer";
