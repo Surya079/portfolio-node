@@ -23,6 +23,7 @@ const userSchema = new Schema({
   occupation: {
     type: String,
     default: "",
+    required: true,
   },
   role: {
     type: String,
@@ -48,6 +49,11 @@ const userSchema = new Schema({
   OTPExpiry: {
     type: Date,
     default: null,
+  },
+  isVerified: {
+    type: String,
+    enum: ["pending", "verified"],
+    default: "pending",
   },
 });
 
