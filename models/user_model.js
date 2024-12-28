@@ -42,14 +42,7 @@ const userSchema = new Schema({
     type: Date,
     default: Date.now,
   },
-  OTP: {
-    type: String,
-    default: "",
-  },
-  OTPExpiry: {
-    type: Date,
-    default: null,
-  },
+
   isVerified: {
     type: String,
     enum: ["pending", "verified"],
