@@ -67,42 +67,55 @@ const sendOtp = async (req, res) => {
 
     const user = await Users.findOne({ email });
 
-    await OTP.findOneAndUpdate(
-      { userId: user._id },
-      {
-        otp: hashedOtp,
-        OTPExpiry: otpExpiryTime,
-      }
-    ).populate("userId");
-
-    const mailOptions = {
-      from: trans_mail,
-      to: email,
-      subject: "OTP Verification",
-      html: `
-        <h1>OTP Verification</h1>
-        <p>Your OTP for registration is: <strong>${otpCode}</strong></p>
-        <p>This OTP is valid for 5 minutes. Please use it before ${otpExpiryTime.toLocaleString()}.</p>
-        <p>After verification, you can proceed to log in to your account.</p>
-        <p>If you need assistance, visit our portfolio website here: 
-        <a href="http://yourportfolio.com">http://yourportfolio.com</a></p>
-    `,
-    };
-
-    transporter
-      .sendMail(mailOptions)
-      .then((info) => {
-        res.status(201).json({
-          success: true,
-          message: "OTP sent to your email successfully",
-        });
-      })
-      .catch((err) => {
-        res.status(500).json({
-          success: false,
-          message: "Error sending OTP to email",
-        });
+    if (!user) {
+      return res.status(404).json({
+        success: true,
+        message: "something went wrong! register again",
       });
+    }
+    if (user?.isVerified === "pending") {
+      await OTP.findOneAndUpdate(
+        { userId: user?._id },
+        {
+          otp: hashedOtp,
+          OTPExpiry: otpExpiryTime,
+        }
+      ).populate("userId");
+
+      const mailOptions = {
+        from: trans_mail,
+        to: email,
+        subject: "OTP Verification",
+        html: `
+          <h1>OTP Verification</h1>
+          <p>Your OTP for registration is: <strong>${otpCode}</strong></p>
+          <p>This OTP is valid for 5 minutes. Please use it before ${otpExpiryTime.toLocaleString()}.</p>
+          <p>After verification, you can proceed to log in to your account.</p>
+          <p>If you need assistance, visit our portfolio website here: 
+          <a href="http://yourportfolio.com">http://yourportfolio.com</a></p>
+      `,
+      };
+
+      transporter
+        .sendMail(mailOptions)
+        .then((info) => {
+          res.status(201).json({
+            success: true,
+            message: "OTP sent to your email successfully",
+          });
+        })
+        .catch((err) => {
+          res.status(500).json({
+            success: false,
+            message: "Error sending OTP to email",
+          });
+        });
+    } else {
+      return res.status(404).json({
+        success: true,
+        message: "You have already verified",
+      });
+    }
   } catch (error) {
     console.log(error);
 
@@ -134,7 +147,7 @@ const verifyOtp = async (req, res) => {
     const user = await Users.findOne({ email });
 
     const otpRecord = await OTP.findOne({
-      userId: user._id,
+      userId: user?._id,
     });
 
     if (!otpRecord) {
@@ -186,6 +199,10 @@ const verifyOtp = async (req, res) => {
       .then((_) => {
         res.status(201).json({
           success: true,
+          verifiedUser: {
+            verified: true,
+            isVerify: "verified",
+          },
           message:
             "OTP verified successfully! A confirmation email has been sent to your inbox.",
         });
@@ -197,9 +214,11 @@ const verifyOtp = async (req, res) => {
         });
       });
   } catch (error) {
+    console.log(error);
+
     return res.status(500).json({
       success: false,
-      message: error.message || "Error during OTP verification",
+      message: "Error during OTP verification",
     });
   }
 };
@@ -226,18 +245,17 @@ const userLogin = async (req, res) => {
     const token = jwt.sign({ id: hasUser._id, name: hasUser.name }, scretkey, {
       expiresIn: "5m",
     });
-    const current_user = [
-      {
-        username: hasUser.name,
-        email: hasUser.email,
-        occupation: hasUser.occupation,
-        role: hasUser.role, // Role of the user
-        isVerified: hasUser.isVerified,
-      },
-    ];
+    const current_user = {
+      username: hasUser.name,
+      email: hasUser.email,
+      occupation: hasUser.occupation,
+      role: hasUser.role, // Role of the user
+      isVerified: hasUser.isVerified,
+    };
+
     res.status(200).json({
       success: true,
-      current_user,
+      current_user: current_user,
       message: "login successfully",
       token,
     });
